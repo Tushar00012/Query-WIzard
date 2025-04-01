@@ -27,6 +27,8 @@ Ensure you have Python 3.8+ installed.
    ```sh
    streamlit run main.py
    ```
+## Demo Video
+[Watch Demo](https://drive.google.com/file/d/1XmURMvdSwhj4Nuz8l5pGDFjM4C_9qTeM/view?usp=sharing)
 
 ## Usage
 1. Open the application in your browser.
@@ -43,5 +45,6 @@ Ensure you have Python 3.8+ installed.
 
 ## Contributing
 Feel free to fork the repository and submit pull requests for improvements!
+
 
 
