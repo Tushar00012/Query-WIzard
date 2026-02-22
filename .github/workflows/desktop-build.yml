@@ -1,0 +1,79 @@
+name: Build Desktop Binaries
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python deps
+        run: pip install -r requirements-desktop.txt
+
+      - name: Build binary (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          pyinstaller --noconfirm --onefile --windowed --name QueryWizard `
+            --add-data "frontend/dist;frontend/dist" `
+            --add-data "backend/mysql_schema.json;backend" `
+            desktop_launcher.py
+
+      - name: Build binary (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          pyinstaller --noconfirm --onefile --windowed --name QueryWizard \
+            --add-data "frontend/dist:frontend/dist" \
+            --add-data "backend/mysql_schema.json:backend" \
+            desktop_launcher.py
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: QueryWizard-${{ runner.os }}
+          path: |
+            dist/QueryWizard*
+
+      - name: Package DMG (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          npm i -g create-dmg
+          mkdir -p release
+          create-dmg dist/QueryWizard.app release || true
+
+      - name: Upload DMG artifact
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: QueryWizard-macOS-dmg
+          path: release/*.dmg
+          if-no-files-found: ignore

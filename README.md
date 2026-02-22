@@ -107,11 +107,59 @@ Query-WIzard/
 
 ---
 
+## 📦 Desktop Build (.exe / .dmg)
+
+This repo now supports packaging the React + Flask app into a desktop binary.
+
+### Local build
+
+1. **macOS build**
+   ```bash
+   ./scripts/build_desktop_mac.sh
+   ```
+   Output: `dist/QueryWizard` (macOS app binary).
+
+2. **Windows build**
+   ```powershell
+   ./scripts/build_desktop_win.ps1
+   ```
+   Output: `dist/QueryWizard.exe`.
+
+### CI build for both platforms
+
+1. Push your code to GitHub.
+2. Create and push a tag:
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+3. GitHub Actions workflow `Build Desktop Binaries` will run on `windows-latest` and `macos-latest`.
+4. Download artifacts from the workflow run:
+   - `QueryWizard-Windows` (`.exe`)
+   - `QueryWizard-macOS` (`.app`)
+   - `QueryWizard-macOS-dmg` (`.dmg`, if generated)
+
+### Publish download links
+
+1. Open GitHub `Releases` and create a release for your tag (example: `v1.0.0`).
+2. Upload built files (`QueryWizard.exe`, `.app`, `.dmg`) as release assets.
+3. Share direct links in this format:
+   - `https://github.com/<owner>/<repo>/releases/download/v1.0.0/QueryWizard.exe`
+   - `https://github.com/<owner>/<repo>/releases/download/v1.0.0/QueryWizard.dmg`
+
+### Runtime requirements for end users
+
+- MySQL must be reachable from the local machine.
+- `GOOGLE_API_KEY` must be available in `.env`.
+- On first launch, users enter DB name/password in the app (saved to `.env`).
+
+---
+
 ## 🔐 Configuration
 
-- **Database**: Create a `.env` file in the **project root** with `DB_NAME`, `DB_PASSWORD`, and optionally `DB_USER`, `DB_HOST`, `DB_PORT`. You can also log in via the app to save credentials.
-- **AI Model**: Set `GOOGLE_API_KEY` in the project-root `.env` (Google Gemini). Get a key from [Google AI Studio](https://aistudio.google.com/apikey).
-- **Schema**: The backend uses `backend/mysql_schema.json`; it is updated when the app connects to your DB.
+- **Database**: In dev mode, use project-root `.env`. In packaged mode, settings are saved to `~/.querywizard/.env`.
+- **AI Model**: Set `GOOGLE_API_KEY` in the same `.env` used at runtime (dev: project root, packaged: `~/.querywizard/.env`).
+- **Schema**: In dev mode schema cache is `backend/mysql_schema.json`; in packaged mode it is `~/.querywizard/mysql_schema.json`.
 - **Language Support**: Modify `deep_translator` settings in `backend/main.py` to add or change supported languages.
 
 ---

@@ -2,9 +2,15 @@ import os
 import json
 import mysql.connector
 import logging
+import sys
 from db_config import DB_CONFIG
 
-SCHEMA_FILE = os.path.join(os.path.dirname(__file__), "mysql_schema.json")
+if getattr(sys, "frozen", False):
+    app_dir = os.path.join(os.path.expanduser("~"), ".querywizard")
+    os.makedirs(app_dir, exist_ok=True)
+    SCHEMA_FILE = os.path.join(app_dir, "mysql_schema.json")
+else:
+    SCHEMA_FILE = os.path.join(os.path.dirname(__file__), "mysql_schema.json")
 logging.basicConfig(level=logging.INFO)
 
 

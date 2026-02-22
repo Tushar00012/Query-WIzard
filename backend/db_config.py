@@ -1,10 +1,19 @@
 import os
 import logging
 import re
+import sys
 from dotenv import load_dotenv
 
 # Project root (parent of backend/)
-_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+_DEV_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+_APP_DIR = os.path.join(os.path.expanduser("~"), ".querywizard")
+
+if getattr(sys, "frozen", False):
+    os.makedirs(_APP_DIR, exist_ok=True)
+    _ROOT = _APP_DIR
+else:
+    _ROOT = _DEV_ROOT
+
 load_dotenv(os.path.join(_ROOT, ".env"))
 
 required_vars = ["DB_HOST", "DB_USER", "DB_PASSWORD", "DB_NAME"]
@@ -21,7 +30,7 @@ DB_CONFIG = {
 
 
 def _env_path():
-    """Path to .env file (project root)."""
+    """Path to .env file (project root in dev, user dir in packaged mode)."""
     return os.path.join(_ROOT, ".env")
 
 
