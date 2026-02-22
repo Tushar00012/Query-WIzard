@@ -14,12 +14,12 @@ try:
     from .db_config import update_env_credentials
     from .schema_handler import load_schema, store_all_table_structures
     from .db_handler import execute_query_api
-    from .ai_generator import get_gemini_response, fix_sql_query, get_sql_explanation
+    from .ai_generator import get_gemini_response, fix_sql_query, get_sql_explanation, has_api_key
 except ImportError:
     from db_config import update_env_credentials
     from schema_handler import load_schema, store_all_table_structures
     from db_handler import execute_query_api
-    from ai_generator import get_gemini_response, fix_sql_query, get_sql_explanation
+    from ai_generator import get_gemini_response, fix_sql_query, get_sql_explanation, has_api_key
 
 
 def has_db_credentials():
@@ -29,11 +29,11 @@ def has_db_credentials():
 
 
 def has_google_api_key():
-    return bool((os.getenv("GOOGLE_API_KEY") or "").strip())
+    return has_api_key()
 
 
 def has_app_credentials():
-    return has_db_credentials() and has_google_api_key()
+    return has_db_credentials()
 
 
 def json_body():
@@ -86,13 +86,10 @@ def create_app():
         data = json_body()
         db_name = (data.get("db_name") or "").strip()
         db_password = data.get("db_password") or ""
-        google_api_key = (data.get("google_api_key") or "").strip()
         if not db_name or not db_password:
             return error("Database name and password required")
-        if not google_api_key and not (os.getenv("GOOGLE_API_KEY") or "").strip():
-            return error("Google API key required")
         try:
-            update_env_credentials(db_name, db_password, google_api_key or None)
+            update_env_credentials(db_name, db_password)
             return jsonify({"success": True})
         except Exception as e:
             return error(str(e), 500)

@@ -1,47 +1,41 @@
 import os
 import logging
-import sys
 import google.generativeai as genai
 from deep_translator import GoogleTranslator
-from dotenv import load_dotenv
 try:
-    from . import db_config  # load .env at import-time
+    from . import db_config  # load .env at import-time (server only)
     from .schema_handler import load_schema, store_all_table_structures
 except ImportError:
-    import db_config  # load .env at import-time
+    import db_config
     from schema_handler import load_schema, store_all_table_structures
 
 logging.basicConfig(level=logging.INFO)
 translator = GoogleTranslator(source="auto", target="en")
-# Hardcoded fallback for packaged/local runs when env loading fails.
-HARDCODED_GOOGLE_API_KEY = "AIzaSyDXZQReLBKBTz868Mfzcmc2Wn-v1GX0gOs"
 
-
-def _candidate_env_paths():
-    paths = []
-    if getattr(sys, "frozen", False):
-        paths.append(os.path.join(os.path.expanduser("~"), ".querywizard", ".env"))
-        paths.append(os.path.join(os.path.dirname(sys.executable), ".env"))
-        meipass = getattr(sys, "_MEIPASS", "")
-        if meipass:
-            paths.append(os.path.join(meipass, ".env"))
-    else:
-        root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-        paths.append(os.path.join(root, ".env"))
-    return paths
+# Secure flow: API key is set only on the backend server (e.g. GOOGLE_API_KEY in server env).
+# Never accept or bundle the key in the client/desktop app.
+def has_api_key():
+    """True if the server has GOOGLE_API_KEY set (env only)."""
+    return bool((os.getenv("GOOGLE_API_KEY") or "").strip())
 
 
 def _ensure_genai_configured():
-    for path in _candidate_env_paths():
-        if os.path.isfile(path):
-            load_dotenv(path, override=False)
     api_key = (os.getenv("GOOGLE_API_KEY") or "").strip()
-    if not api_key:
-        api_key = HARDCODED_GOOGLE_API_KEY.strip()
     if not api_key:
         return False
     genai.configure(api_key=api_key)
     return True
+
+
+def _format_ai_error(exc: Exception) -> str:
+    """Return a user-facing message. Never expose raw 403/leaked or API key details."""
+    text = str(exc)
+    lower = text.lower()
+    if "403" in lower or "leak" in lower or "revoked" in lower:
+        return "AI Error: Unable to generate SQL. Please try again later."
+    if "api key" in lower and ("invalid" in lower or "not valid" in lower):
+        return "AI Error: Unable to generate SQL. Please try again later."
+    return f"AI Error: {text}"
 
 
 def translate_to_english(text):
@@ -90,7 +84,7 @@ def _build_referenced_by(schema):
 
 def get_gemini_response(prompt, default_table=None):
     if not _ensure_genai_configured():
-        return "AI Error: Missing GOOGLE_API_KEY. Set it in .env (packaged app: ~/.querywizard/.env)."
+        return "AI Error: Unable to generate SQL. Please try again later."
     store_all_table_structures(force_update=True)
     schema = load_schema()
     translated_prompt = translate_to_english(prompt)
@@ -124,7 +118,7 @@ def get_gemini_response(prompt, default_table=None):
         sql_query = response.text.strip().replace("```sql", "").replace("```", "").strip()
         return sql_query
     except Exception as e:
-        return f"AI Error: {str(e)}"
+        return _format_ai_error(e)
 
 
 FIX_SQL_PROMPT = """You are an expert MySQL administrator. The following MySQL query failed with an error.
@@ -139,7 +133,7 @@ Rules:
 def fix_sql_query(failed_sql, error_message, original_prompt=None, default_table=None):
     """Given a failed SQL and error message, returns a corrected SQL query."""
     if not _ensure_genai_configured():
-        return "AI Error: Missing GOOGLE_API_KEY. Set it in .env (packaged app: ~/.querywizard/.env)."
+        return "AI Error: Unable to generate SQL. Please try again later."
     store_all_table_structures(force_update=True)
     schema = load_schema()
     prompt = f"""Error from database: {error_message}
@@ -170,13 +164,13 @@ Failed query:
         sql_query = response.text.strip().replace("```sql", "").replace("```", "").strip()
         return sql_query
     except Exception as e:
-        return f"AI Error: {str(e)}"
+        return _format_ai_error(e)
 
 
 def get_sql_explanation(sql_query, target_language="en"):
     """Generate a brief explanation of the SQL query in the given language."""
     if not _ensure_genai_configured():
-        return "Error generating explanation: Missing GOOGLE_API_KEY. Set it in .env (packaged app: ~/.querywizard/.env)."
+        return "Error generating explanation. Please try again later."
     try:
         model = genai.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content(
@@ -188,4 +182,4 @@ def get_sql_explanation(sql_query, target_language="en"):
             explanation = translator.translate(explanation)
         return explanation
     except Exception as e:
-        return f"Error generating explanation: {str(e)}"
+        return _format_ai_error(e)
