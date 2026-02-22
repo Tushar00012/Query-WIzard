@@ -2,9 +2,14 @@ import mysql.connector
 import logging
 import re
 import pandas as pd
-from query_parser import fix_insert_query
-from db_config import DB_CONFIG
-from schema_handler import store_all_table_structures
+try:
+    from .query_parser import fix_insert_query
+    from .db_config import DB_CONFIG
+    from .schema_handler import store_all_table_structures
+except ImportError:
+    from query_parser import fix_insert_query
+    from db_config import DB_CONFIG
+    from schema_handler import store_all_table_structures
 
 logging.basicConfig(level=logging.INFO)
 

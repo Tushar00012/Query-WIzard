@@ -10,15 +10,16 @@ from pathlib import Path
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
-CURRENT_DIR = Path(__file__).resolve().parent
-if str(CURRENT_DIR) not in sys.path:
-    # Keep legacy absolute imports working when app is imported as backend.app.
-    sys.path.insert(0, str(CURRENT_DIR))
-
-from db_config import update_env_credentials
-from schema_handler import load_schema, store_all_table_structures
-from db_handler import execute_query_api
-from ai_generator import get_gemini_response, fix_sql_query, get_sql_explanation
+try:
+    from .db_config import update_env_credentials
+    from .schema_handler import load_schema, store_all_table_structures
+    from .db_handler import execute_query_api
+    from .ai_generator import get_gemini_response, fix_sql_query, get_sql_explanation
+except ImportError:
+    from db_config import update_env_credentials
+    from schema_handler import load_schema, store_all_table_structures
+    from db_handler import execute_query_api
+    from ai_generator import get_gemini_response, fix_sql_query, get_sql_explanation
 
 
 def has_db_credentials():

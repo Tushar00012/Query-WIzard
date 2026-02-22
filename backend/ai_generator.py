@@ -1,9 +1,13 @@
 import os
 import logging
-import db_config  # load .env from project root
 import google.generativeai as genai
-from schema_handler import load_schema, store_all_table_structures
 from deep_translator import GoogleTranslator
+try:
+    from . import db_config  # load .env at import-time
+    from .schema_handler import load_schema, store_all_table_structures
+except ImportError:
+    import db_config  # load .env at import-time
+    from schema_handler import load_schema, store_all_table_structures
 
 api_key = os.getenv("GOOGLE_API_KEY") or ""
 genai.configure(api_key=api_key)

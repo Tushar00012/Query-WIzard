@@ -3,7 +3,10 @@ import json
 import mysql.connector
 import logging
 import sys
-from db_config import DB_CONFIG
+try:
+    from .db_config import DB_CONFIG
+except ImportError:
+    from db_config import DB_CONFIG
 
 if getattr(sys, "frozen", False):
     app_dir = os.path.join(os.path.expanduser("~"), ".querywizard")

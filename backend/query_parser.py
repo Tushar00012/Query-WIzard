@@ -1,6 +1,9 @@
 import re
 import logging
-from schema_handler import get_table_columns
+try:
+    from .schema_handler import get_table_columns
+except ImportError:
+    from schema_handler import get_table_columns
 
 logging.basicConfig(level=logging.INFO)
 
