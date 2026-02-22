@@ -15,7 +15,7 @@ def load_schema():
             with open(SCHEMA_FILE, "r") as f:
                 return json.load(f)
         except json.JSONDecodeError:
-            logging.error("  Schema file is corrupted! Rebuilding...")
+            logging.warning("Schema file is invalid or empty. Run a query to rebuild from database.")
             return {}
     return {}
 
@@ -44,15 +44,13 @@ def store_all_table_structures(force_update=False):
 
         for table in tables:
             cursor.execute(f"DESCRIBE {table}")
-            describe_results = cursor.fetchall()  #   Fetch all results before reusing cursor
+            describe_results = cursor.fetchall()  
             
             table_structure = {}
 
-            #   Fetch Primary Keys
             cursor.execute(f"SHOW KEYS FROM {table} WHERE Key_name = 'PRIMARY'")
             primary_keys = {row[4] for row in cursor.fetchall()}  
 
-            #   Fetch Foreign Keys
             cursor.execute(f"""
                 SELECT COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
                 FROM information_schema.KEY_COLUMN_USAGE
@@ -60,7 +58,6 @@ def store_all_table_structures(force_update=False):
             """)
             foreign_keys = {row[0]: f"{row[1]}({row[2]})" for row in cursor.fetchall()}  
 
-            #   Process Column Info
             for row in describe_results:
                 col_name, col_type = row[0], row[1]
                 table_structure[col_name] = {
@@ -79,6 +76,6 @@ def store_all_table_structures(force_update=False):
 
     finally:
         if cursor.with_rows:
-            cursor.fetchall()  #   Drain any unread results
+            cursor.fetchall()  
         cursor.close()
         conn.close()

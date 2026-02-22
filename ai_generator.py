@@ -5,10 +5,8 @@ import google.generativeai as genai
 from schema_handler import load_schema, store_all_table_structures
 from deep_translator import GoogleTranslator
 
-# Configure Gemini API
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-# Set up logging
 logging.basicConfig(level=logging.INFO)
 translator = GoogleTranslator(source='auto', target='en')
 

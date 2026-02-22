@@ -2,13 +2,13 @@ import mysql.connector
 import streamlit as st
 import logging
 import re
+import pandas as pd
 from query_parser import fix_insert_query
 from db_config import DB_CONFIG
 from schema_handler import store_all_table_structures
 
 logging.basicConfig(level=logging.INFO)
 
-# Initialize session state for query history
 if "query_history" not in st.session_state:
     st.session_state["query_history"] = []
 
@@ -22,8 +22,8 @@ def execute_query(query):
     conn = mysql.connector.connect(**DB_CONFIG)
     cursor = conn.cursor()
 
-    queries = query.strip().split(";")  # Split multiple queries
-    queries = [q.strip() for q in queries if q.strip()]  # Remove empty queries
+    queries = query.strip().split(";")  
+    queries = [q.strip() for q in queries if q.strip()]  
 
     if not queries:
         st.warning("⚠️ No valid SQL query found.")
@@ -36,37 +36,42 @@ def execute_query(query):
             if not table_name and q.lower().startswith("select"):
                 table_name = "Unknown Table"
 
-            # Store query history for undo
             st.session_state["query_history"].append(q)
 
             if q.lower().startswith("insert"):
                 corrected_query, values_list = fix_insert_query(q, table_name)
                 if not corrected_query:
-                    st.error(values_list)  # Display error message
+                    st.error(values_list)  
                     return
 
                 cursor.executemany(corrected_query, values_list)
                 conn.commit()
-                st.success(f"✅ Insert query executed successfully for `{table_name}`!")
+                st.session_state["query_results"] = None
+                st.success(f"Insert query executed successfully for `{table_name}`!")
 
             elif q.lower().startswith("delete"):
                 cursor.execute(q)
                 conn.commit()
-                st.success(f"✅ Delete query executed successfully!")
+                st.session_state["query_results"] = None
+                st.success(f" Delete query executed successfully!")
             
             elif q.lower().startswith("update"):
                 cursor.execute(q)
                 conn.commit()
-                st.success(f"✅ Update query executed successfully!")
+                st.session_state["query_results"] = None
+                st.success(f" Update query executed successfully!")
 
             elif q.lower().startswith("show tables"):
                 cursor.execute(q)
                 results = cursor.fetchall()
                 if results:
                     st.write("**Available Tables in Database:**")
-                    st.dataframe({"Tables": [row[0] for row in results]})
+                    df = pd.DataFrame({"Tables": [row[0] for row in results]})
+                    st.dataframe(df)
+                    st.session_state["query_results"] = df
                 else:
                     st.warning("No tables found in the database.")
+                    st.session_state["query_results"] = None
 
             elif q.lower().startswith(("select", "show", "describe")):
                 cursor.execute(q)
@@ -75,25 +80,28 @@ def execute_query(query):
 
                 if results:
                     st.write(f"**Query Results for `{table_name}`:**")
-                    st.dataframe({col: [row[i] for row in results] for i, col in enumerate(column_names)})  
+                    df = pd.DataFrame({col: [row[i] for row in results] for i, col in enumerate(column_names)})
+                    st.dataframe(df)
+                    st.session_state["query_results"] = df
                 else:
                     st.warning(f"No records found in `{table_name}`.")
+                    st.session_state["query_results"] = None
 
             else:
                 cursor.execute(q)
                 conn.commit()
-                st.success(f"✅ Query executed successfully!")
+                st.success(f" Query executed successfully!")
 
     except mysql.connector.Error as err:
-        st.error(f"❌ SQL Execution Error: {err}")
+        st.error(f" SQL Execution Error: {err}")
         logging.error(f"SQL Execution Error: {err}")
 
     finally:
         try:
-            while cursor.nextset():  # Handle multiple result sets
+            while cursor.nextset():  
                 pass
         except mysql.connector.InterfaceError:
-            pass  # Ignore errors when no unread results exist
+            pass  
 
         cursor.close()
         conn.close()

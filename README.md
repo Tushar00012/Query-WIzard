@@ -1,4 +1,4 @@
-# Query Wizard 
+# Query Wizard 3.0
 
 Enterprises struggle with complex, location bound database access and multilingual barriers. So an automated AI-driven platform is required for real-time, natural language interaction with databases accessible anytime, anywhere, by anyone. In database management, many individuals, such as beginners and nontechnical users, often struggle with writing SQL queries. This challenge motivated my team to create Query Wizard to ease writing queries. **Query Wizard 3.0** is an AI-powered Database handling platform that allows users to interact with real-time databases using NLP through text and voice input, from any location on the globe with multilingual support.
 
