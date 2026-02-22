@@ -1,5 +1,10 @@
 import os
-import streamlit as st
+import sys
+
+_backend_dir = os.path.dirname(os.path.abspath(__file__))
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
 import speech_recognition as sr
 from db_handler import execute_query
 from ai_generator import get_gemini_response, fix_sql_query
@@ -168,9 +173,6 @@ def get_db_username():
         return "Unknown User"
 
 def translate_prompt(text):
-    """
-    Translates the user input into English while preserving table names.
-    """
     translator = GoogleTranslator(source='auto', target='en')
     try:
         return translator.translate(text)
@@ -179,7 +181,6 @@ def translate_prompt(text):
         return text
 
 def _current_prompt():
-    """Current query text (from text area or voice-synced user_input)."""
     return st.session_state.get("user_input", "")
 
 def speech_to_text():
@@ -188,7 +189,6 @@ def speech_to_text():
         st.write("🎙️ Listening... Please speak your query.")
         recognizer.adjust_for_ambient_noise(source, duration=1)
         audio = recognizer.listen(source, timeout=None, phrase_time_limit=None)
-
     try:
         text = recognizer.recognize_google(audio)
         st.session_state["user_input"] = text
@@ -200,48 +200,34 @@ def speech_to_text():
         st.error(f"Could not request results from Google Speech Recognition service; {e}")
 
 def get_sql_explanation(sql_query, target_language='en'):
-    """
-    Generates a concise explanation of the SQL query in the specified language.
-    """
     try:
         model = genai.GenerativeModel('gemini-2.0-flash')
-        explanation_prompt = f"""
-        Provide a brief explanation of this SQL query in 2-3 sentences:
-        {sql_query}
-        """
-        response = model.generate_content(explanation_prompt)
+        response = model.generate_content(
+            f"Provide a brief explanation of this SQL query in 2-3 sentences:\n{sql_query}"
+        )
         explanation = response.text.strip()
-        
         if target_language != 'en':
             translator = GoogleTranslator(source='auto', target=target_language)
             explanation = translator.translate(explanation)
-        
         return explanation
     except Exception as e:
         return f"Error generating explanation: {str(e)}"
 
 st.title("Query Wizard")
 
-# Sidebar configuration
 with st.sidebar:
-    st.image("logo.png", width="stretch")
-    
-    # Table selection with improved layout
+    st.image(os.path.join(os.path.dirname(__file__), "..", "logo.png"), width=250)
     st.markdown("### Database Tables")
     selected_table = st.selectbox("Select a Table", ["None"] + list(schema.keys()))
-    
     if selected_table and selected_table != "None":
         with st.expander(f" {selected_table} Schema", expanded=False):
             table_columns = schema.get(selected_table, {})
             for col, details in table_columns.items():
                 st.markdown(f"🔹 **{col}** : `{details['type']}`")
-            
             if st.button(" Display All Records", key="display_all"):
                 query = f"SELECT * FROM {selected_table} LIMIT 100;"
                 st.session_state["generated_sql"] = query
                 execute_query(query)
-    
-    # Language selection (single select)
     st.markdown("---")
     st.markdown("###  Explanation Language")
     st.session_state["selected_language"] = st.selectbox(
@@ -249,11 +235,8 @@ with st.sidebar:
         options=list(languages.keys()),
         index=list(languages.keys()).index(st.session_state["selected_language"]) if st.session_state["selected_language"] in languages else 0
     )
-    
-    # History section with improved layout
     st.markdown("---")
     st.markdown("### Query History")
-    
     if st.session_state["prompt_history"]:
         for i, history_item in enumerate(reversed(st.session_state["prompt_history"])):
             with st.expander(f"Query {len(st.session_state['prompt_history']) - i}", expanded=False):
@@ -267,20 +250,15 @@ with st.sidebar:
     else:
         st.info("No query history yet")
 
-# Main content area
 st.markdown("### Enter Your Query")
-input_container = st.container()
-with input_container:
-    # No key= so we can set user_input from voice without Streamlit API error
-    user_input = st.text_area(
-        "Query Input",
-        value=st.session_state.get("user_input", ""),
-        height=150,
-        label_visibility="collapsed"
-    )
-    st.session_state["user_input"] = user_input
+user_input = st.text_area(
+    "Query Input",
+    value=st.session_state.get("user_input", ""),
+    height=150,
+    label_visibility="collapsed"
+)
+st.session_state["user_input"] = user_input
 
-# First row of buttons
 row1_col1, row1_col2 = st.columns([1, 1])
 with row1_col1:
     if st.button("Voice Input", key="voice_input"):
@@ -306,12 +284,9 @@ with row1_col2:
         else:
             st.warning("Please enter a query first.")
 
-# Display generated SQL
 if st.session_state.get("generated_sql"):
     st.markdown("### Generated SQL Query")
     st.code(st.session_state["generated_sql"], language='sql')
-
-    # Query explanation with language selection
     with st.expander("Query Explanation", expanded=False):
         lang = st.session_state["selected_language"]
         st.markdown(f"**{lang}:**")
@@ -320,8 +295,6 @@ if st.session_state.get("generated_sql"):
             st.markdown(f'<div class="explanation-item">{explanation}</div>', unsafe_allow_html=True)
         except Exception as e:
             st.error(f"Error generating {lang} explanation: {str(e)}")
-    
-    # Execute and Fix buttons
     exec_col, fix_col = st.columns([1, 1])
     with exec_col:
         if st.button("Execute SQL", key="execute_sql"):
@@ -358,7 +331,6 @@ if st.session_state.get("generated_sql"):
                     st.session_state["generated_sql"] = fixed
                 st.rerun()
 
-# Add download functionality for query results
 if st.session_state.get("query_results") is not None and isinstance(st.session_state["query_results"], pd.DataFrame) and not st.session_state["query_results"].empty:
     st.markdown("###  Download Results")
     csv = st.session_state["query_results"].to_csv(index=False)

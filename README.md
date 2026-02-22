@@ -43,19 +43,22 @@ Enterprises struggle with complex, location bound database access and multilingu
 ## 📂 Project Structure
 
 ```
-Query_Wizard_3.0/
-├── __pycache__/              # Compiled bytecode files
-├── ai_generator.py           # Handles AI-based SQL generation
-├── db_config.py              # Database configuration settings
-├── db_handler.py             # Functions for database connections and query execution
-├── login.py                  # User authentication logic
+Query-WIzard/
+├── backend/                  # Python backend (Flask API + Streamlit)
+│   ├── app.py                # Flask API for React frontend
+│   ├── main.py               # Streamlit app
+│   ├── db_config.py          # DB config; reads/writes .env in project root
+│   ├── db_handler.py         # Database connections and query execution
+│   ├── schema_handler.py     # Schema retrieval; uses backend/mysql_schema.json
+│   ├── ai_generator.py       # AI-based SQL generation (Gemini)
+│   ├── query_parser.py       # Query parsing and validation
+│   ├── mysql_schema.json     # Cached MySQL schema
+│   └── __init__.py
+├── frontend/                 # React + Vite UI (optional alternative to Streamlit)
+├── .env                      # DB credentials + GOOGLE_API_KEY (project root)
 ├── logo.png                  # Application logo
-├── main.py                   # Main application script
-├── mysql_schema.json         # Sample MySQL schema for reference
-├── prompt.py                 # Prompt templates for AI model
-├── query_parser.py           # Parses and validates generated SQL queries
 ├── requirements.txt          # Python dependencies
-├── schema_handler.py         # Manages database schema retrieval and display
+├── run_backend.sh            # Start Flask API from project root
 └── README.md                 # Project documentation
 ```
 
@@ -92,17 +95,24 @@ Query_Wizard_3.0/
 
 4. **Run the Application**
 
-   ```bash
-   streamlit run main.py
-   ```
+   - **Streamlit UI** (from project root):
+     ```bash
+     cd backend && streamlit run main.py
+     ```
+   - **React + Flask** (Flask API first, then frontend):
+     ```bash
+     ./run_backend.sh
+     ```
+     Then in another terminal: `cd frontend && npm install && npm run dev`. Open http://localhost:5173.
 
 ---
 
 ## 🔐 Configuration
 
-- **Database Settings**: Update `db_config.py` with your MySQL credentials and connection details.
-- **AI Model API Key**: Ensure you have access to the Google Gemini AI API and set the necessary keys in `ai_generator.py`.
-- **Language Support**: Modify `deep_translator` settings in `main.py` to add or change supported languages.
+- **Database**: Create a `.env` file in the **project root** with `DB_NAME`, `DB_PASSWORD`, and optionally `DB_USER`, `DB_HOST`, `DB_PORT`. You can also log in via the app to save credentials.
+- **AI Model**: Set `GOOGLE_API_KEY` in the project-root `.env` (Google Gemini). Get a key from [Google AI Studio](https://aistudio.google.com/apikey).
+- **Schema**: The backend uses `backend/mysql_schema.json`; it is updated when the app connects to your DB.
+- **Language Support**: Modify `deep_translator` settings in `backend/main.py` to add or change supported languages.
 
 ---
 

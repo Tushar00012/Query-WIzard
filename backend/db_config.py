@@ -3,7 +3,9 @@ import logging
 import re
 from dotenv import load_dotenv
 
-load_dotenv()
+# Project root (parent of backend/)
+_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+load_dotenv(os.path.join(_ROOT, ".env"))
 
 required_vars = ["DB_HOST", "DB_USER", "DB_PASSWORD", "DB_NAME"]
 for var in required_vars:
@@ -19,13 +21,13 @@ DB_CONFIG = {
 
 
 def _env_path():
-    """Path to .env file (project root / cwd)."""
-    return os.path.join(os.getcwd(), ".env")
+    """Path to .env file (project root)."""
+    return os.path.join(_ROOT, ".env")
 
 
 def refresh_db_config():
     """Reload env and update DB_CONFIG in place so all importers see new values."""
-    load_dotenv(override=True)
+    load_dotenv(os.path.join(_ROOT, ".env"), override=True)
     global DB_CONFIG
     DB_CONFIG["host"] = os.getenv("DB_HOST", "localhost")
     DB_CONFIG["user"] = os.getenv("DB_USER", "root")
@@ -60,4 +62,3 @@ def update_env_credentials(db_name: str, db_password: str) -> None:
     os.environ["DB_NAME"] = db_name
     os.environ["DB_PASSWORD"] = db_password
     refresh_db_config()
-
