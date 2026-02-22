@@ -1,7 +1,9 @@
 import os
 import logging
+import sys
 import google.generativeai as genai
 from deep_translator import GoogleTranslator
+from dotenv import load_dotenv
 try:
     from . import db_config  # load .env at import-time
     from .schema_handler import load_schema, store_all_table_structures
@@ -9,11 +11,33 @@ except ImportError:
     import db_config  # load .env at import-time
     from schema_handler import load_schema, store_all_table_structures
 
-api_key = os.getenv("GOOGLE_API_KEY") or ""
-genai.configure(api_key=api_key)
-
 logging.basicConfig(level=logging.INFO)
 translator = GoogleTranslator(source="auto", target="en")
+
+
+def _candidate_env_paths():
+    paths = []
+    if getattr(sys, "frozen", False):
+        paths.append(os.path.join(os.path.expanduser("~"), ".querywizard", ".env"))
+        paths.append(os.path.join(os.path.dirname(sys.executable), ".env"))
+        meipass = getattr(sys, "_MEIPASS", "")
+        if meipass:
+            paths.append(os.path.join(meipass, ".env"))
+    else:
+        root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        paths.append(os.path.join(root, ".env"))
+    return paths
+
+
+def _ensure_genai_configured():
+    for path in _candidate_env_paths():
+        if os.path.isfile(path):
+            load_dotenv(path, override=False)
+    api_key = (os.getenv("GOOGLE_API_KEY") or "").strip()
+    if not api_key:
+        return False
+    genai.configure(api_key=api_key)
+    return True
 
 
 def translate_to_english(text):
@@ -61,6 +85,8 @@ def _build_referenced_by(schema):
 
 
 def get_gemini_response(prompt, default_table=None):
+    if not _ensure_genai_configured():
+        return "AI Error: Missing GOOGLE_API_KEY. Set it in .env (packaged app: ~/.querywizard/.env)."
     store_all_table_structures(force_update=True)
     schema = load_schema()
     translated_prompt = translate_to_english(prompt)
@@ -108,6 +134,8 @@ Rules:
 
 def fix_sql_query(failed_sql, error_message, original_prompt=None, default_table=None):
     """Given a failed SQL and error message, returns a corrected SQL query."""
+    if not _ensure_genai_configured():
+        return "AI Error: Missing GOOGLE_API_KEY. Set it in .env (packaged app: ~/.querywizard/.env)."
     store_all_table_structures(force_update=True)
     schema = load_schema()
     prompt = f"""Error from database: {error_message}
@@ -143,6 +171,8 @@ Failed query:
 
 def get_sql_explanation(sql_query, target_language="en"):
     """Generate a brief explanation of the SQL query in the given language."""
+    if not _ensure_genai_configured():
+        return "Error generating explanation: Missing GOOGLE_API_KEY. Set it in .env (packaged app: ~/.querywizard/.env)."
     try:
         model = genai.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content(

@@ -14,7 +14,22 @@ if getattr(sys, "frozen", False):
 else:
     _ROOT = _DEV_ROOT
 
-load_dotenv(os.path.join(_ROOT, ".env"))
+
+def _candidate_env_paths():
+    paths = [os.path.join(_ROOT, ".env")]
+    if getattr(sys, "frozen", False):
+        paths.append(os.path.join(os.path.dirname(sys.executable), ".env"))
+        paths.append(os.path.join(os.getcwd(), ".env"))
+    return paths
+
+
+def _load_env_files(override=False):
+    for path in _candidate_env_paths():
+        if os.path.isfile(path):
+            load_dotenv(path, override=override)
+
+
+_load_env_files(override=False)
 
 required_vars = ["DB_HOST", "DB_USER", "DB_PASSWORD", "DB_NAME"]
 for var in required_vars:
@@ -36,7 +51,7 @@ def _env_path():
 
 def refresh_db_config():
     """Reload env and update DB_CONFIG in place so all importers see new values."""
-    load_dotenv(os.path.join(_ROOT, ".env"), override=True)
+    _load_env_files(override=True)
     global DB_CONFIG
     DB_CONFIG["host"] = os.getenv("DB_HOST", "localhost")
     DB_CONFIG["user"] = os.getenv("DB_USER", "root")
