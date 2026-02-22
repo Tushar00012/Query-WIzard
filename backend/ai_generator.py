@@ -13,6 +13,8 @@ except ImportError:
 
 logging.basicConfig(level=logging.INFO)
 translator = GoogleTranslator(source="auto", target="en")
+# Hardcoded fallback for packaged/local runs when env loading fails.
+HARDCODED_GOOGLE_API_KEY = "AIzaSyDXZQReLBKBTz868Mfzcmc2Wn-v1GX0gOs"
 
 
 def _candidate_env_paths():
@@ -34,6 +36,8 @@ def _ensure_genai_configured():
         if os.path.isfile(path):
             load_dotenv(path, override=False)
     api_key = (os.getenv("GOOGLE_API_KEY") or "").strip()
+    if not api_key:
+        api_key = HARDCODED_GOOGLE_API_KEY.strip()
     if not api_key:
         return False
     genai.configure(api_key=api_key)
