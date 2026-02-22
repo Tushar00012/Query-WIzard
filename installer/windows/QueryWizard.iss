@@ -30,9 +30,22 @@ Name: "{autodesktop}\QueryWizard"; Filename: "{app}\QueryWizard.exe"; Tasks: des
 Filename: "{app}\QueryWizard.exe"; Description: "Launch QueryWizard"; Flags: nowait postinstall skipifsilent
 
 [Code]
+var
+  ConfigPage: TInputQueryWizardPage;
+
 function RuntimeEnvDir: string;
 begin
   Result := ExpandConstant('{userprofile}\.querywizard');
+end;
+
+function HasAnyInstallInput(): Boolean;
+begin
+  Result :=
+    (Trim(ConfigPage.Values[0]) <> '') or
+    (Trim(ConfigPage.Values[1]) <> '') or
+    (Trim(ConfigPage.Values[2]) <> '') or
+    (Trim(ConfigPage.Values[3]) <> '') or
+    (Trim(ConfigPage.Values[4]) <> '');
 end;
 
 procedure EnsureRuntimeEnvFile();
@@ -44,16 +57,37 @@ begin
     ForceDirectories(DirPath);
 
   FilePath := DirPath + '\.env';
-  if not FileExists(FilePath) then
-  begin
-    Content :=
-      'GOOGLE_API_KEY=' + #13#10 +
-      'DB_HOST=localhost' + #13#10 +
-      'DB_USER=root' + #13#10 +
-      'DB_PASSWORD=' + #13#10 +
-      'DB_NAME=' + #13#10;
-    SaveStringToFile(FilePath, Content, False);
-  end;
+
+  { If file exists and user did not enter anything, preserve existing runtime config. }
+  if FileExists(FilePath) and (not HasAnyInstallInput()) then
+    exit;
+
+  Content :=
+    'GOOGLE_API_KEY=' + Trim(ConfigPage.Values[0]) + #13#10 +
+    'DB_HOST=' + Trim(ConfigPage.Values[1]) + #13#10 +
+    'DB_USER=' + Trim(ConfigPage.Values[2]) + #13#10 +
+    'DB_PASSWORD=' + Trim(ConfigPage.Values[3]) + #13#10 +
+    'DB_NAME=' + Trim(ConfigPage.Values[4]) + #13#10;
+  SaveStringToFile(FilePath, Content, False);
+end;
+
+procedure InitializeWizard();
+begin
+  ConfigPage := CreateInputQueryPage(
+    wpSelectTasks,
+    'Runtime Configuration',
+    'Set QueryWizard runtime values',
+    'These values will be written to %USERPROFILE%\.querywizard\.env'
+  );
+
+  ConfigPage.Add('Google API key (required for AI features):', True);
+  ConfigPage.Add('DB host:', False);
+  ConfigPage.Add('DB user:', False);
+  ConfigPage.Add('DB password:', True);
+  ConfigPage.Add('DB name:', False);
+
+  ConfigPage.Values[1] := 'localhost';
+  ConfigPage.Values[2] := 'root';
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
