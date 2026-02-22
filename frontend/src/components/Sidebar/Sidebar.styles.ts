@@ -28,6 +28,7 @@ const SidebarAside = styled.aside`
 const Header = styled.div`
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
   background: transparent;
@@ -46,6 +47,35 @@ const Title = styled.span`
   font-weight: 600;
   font-size: 1.1rem;
   color: #31333f;
+`
+
+const LogoutBtn = styled.button`
+  margin-left: auto;
+  padding: 0.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s;
+
+  &:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`
+
+const LogoutIcon = styled.img`
+  display: block;
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
 `
 
 const Section = styled.section`
@@ -264,6 +294,8 @@ export const styles = {
   SidebarAside,
   Header,
   Logo,
+  LogoutBtn,
+  LogoutIcon,
   Title,
   Section,
   Heading,

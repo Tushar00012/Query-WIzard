@@ -17,6 +17,16 @@ else:
 logging.basicConfig(level=logging.INFO)
 
 
+def delete_schema_file() -> None:
+    """Deletes the schema JSON file if it exists (e.g. on logout)."""
+    if os.path.exists(SCHEMA_FILE):
+        try:
+            os.remove(SCHEMA_FILE)
+            logging.info("Schema file deleted")
+        except OSError as e:
+            logging.warning("Could not delete schema file: %s", e)
+
+
 def load_schema():
     """Loads the schema JSON file if it exists."""
     if os.path.exists(SCHEMA_FILE):

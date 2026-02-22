@@ -14,14 +14,12 @@ const TitleWrap = styled.h1`
   font-size: 2rem;
   font-weight: 700;
   color: #31333f;
-  background: transparent;
 `
 
 const TitleLogo = styled.img`
   height: 5rem;
   width: auto;
   display: block;
-  background: transparent;
 `
 
 const Section = styled.section`

@@ -19,6 +19,9 @@ google-generativeai>=0.3.0
 # Translation (used in main.py & ai_generator.py)
 deep-translator>=1.11.0
 
+# Secure local credential storage (desktop builds)
+keyring>=25.0.0
+
 # Speech input (voice queries)
 SpeechRecognition>=3.10.0
 PyAudio>=0.2.14

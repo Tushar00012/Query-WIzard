@@ -88,3 +88,8 @@ def update_env_credentials(db_name: str, db_password: str) -> None:
     os.environ["DB_NAME"] = db_name
     os.environ["DB_PASSWORD"] = db_password
     refresh_db_config()
+
+
+def clear_credentials() -> None:
+    """Clear DB credentials from .env and memory (used on logout)."""
+    update_env_credentials("", "")

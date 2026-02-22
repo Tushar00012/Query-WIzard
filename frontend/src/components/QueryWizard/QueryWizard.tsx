@@ -11,6 +11,10 @@ import Sidebar from '../Sidebar/Sidebar'
 import MainContent from '../MainContent/MainContent'
 import { styles } from './QueryWizard.styles'
 
+export interface QueryWizardProps {
+  onLogout?: () => void
+}
+
 export const LANGUAGES: LanguageOption[] = [
   { label: '🇺🇸 English', code: 'en' },
   { label: '🇪🇸 Spanish', code: 'es' },
@@ -22,7 +26,7 @@ export const LANGUAGES: LanguageOption[] = [
   { label: '🇷🇺 Russian', code: 'ru' },
 ]
 
-export default function QueryWizard() {
+export default function QueryWizard({ onLogout }: QueryWizardProps = {}) {
   const [schema, setSchema] = useState<SchemaMap>({})
   const [tables, setTables] = useState<string[]>([])
   const [selectedTable, setSelectedTable] = useState('None')
@@ -61,6 +65,7 @@ export default function QueryWizard() {
         languages={LANGUAGES}
         promptHistory={promptHistory}
         schemaLoading={schemaLoading}
+        onLogout={onLogout}
       />
       <styles.MainArea>
         <MainContent

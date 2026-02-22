@@ -13,10 +13,11 @@ export default function App() {
   }, [])
 
   const onLoginSuccess = () => setAuthenticated(true)
+  const onLogout = () => setAuthenticated(false)
 
   if (!authenticated) {
     return <Login onSuccess={onLoginSuccess} />
   }
 
-  return <QueryWizard />
+  return <QueryWizard onLogout={onLogout} />
 }

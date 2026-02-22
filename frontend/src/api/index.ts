@@ -19,13 +19,26 @@ export async function checkAuth(): Promise<boolean> {
   }
 }
 
-export async function login(dbName: string, dbPassword: string): Promise<LoginResponse> {
+export async function logout(): Promise<void> {
+  const r = await fetch(`${API}/logout`, { method: 'POST' })
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({ detail: r.statusText }))
+    throw new Error((err as { detail?: string }).detail || 'Logout failed')
+  }
+}
+
+export async function login(
+  dbName: string,
+  dbPassword: string,
+  googleApiKey: string
+): Promise<LoginResponse> {
   const r = await fetch(`${API}/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       db_name: dbName,
       db_password: dbPassword,
+      google_api_key: googleApiKey,
     }),
   })
   if (!r.ok) {

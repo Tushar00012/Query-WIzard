@@ -15,6 +15,7 @@ export interface SidebarProps {
   languages: LanguageOption[]
   promptHistory: PromptHistoryItem[]
   schemaLoading: boolean
+  onLogout?: () => void
 }
 
 export interface MainContentProps {

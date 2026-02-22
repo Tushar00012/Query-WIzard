@@ -4,6 +4,7 @@ import bgImage from '@/assets/image.png'
 const Page = styled.div`
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 2rem;
@@ -19,6 +20,20 @@ const Box = styled.div`
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   background: #fff;
+`
+
+const LogoWrap = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+`
+
+const Logo = styled.img`
+  height: 10rem;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  background: transparent;
 `
 
 const Title = styled.h1`
@@ -97,6 +112,8 @@ const Submit = styled.button`
 export const styles = {
   Page,
   Box,
+  LogoWrap,
+  Logo,
   Title,
   Sub,
   Form,

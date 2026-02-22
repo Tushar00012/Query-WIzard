@@ -5,22 +5,22 @@ from deep_translator import GoogleTranslator
 try:
     from . import db_config  # load .env at import-time (server only)
     from .schema_handler import load_schema, store_all_table_structures
+    from .secret_store import get_google_api_key
 except ImportError:
     import db_config
     from schema_handler import load_schema, store_all_table_structures
+    from secret_store import get_google_api_key
 
 logging.basicConfig(level=logging.INFO)
 translator = GoogleTranslator(source="auto", target="en")
 
-# Secure flow: API key is set only on the backend server (e.g. GOOGLE_API_KEY in server env).
-# Never accept or bundle the key in the client/desktop app.
 def has_api_key():
-    """True if the server has GOOGLE_API_KEY set (env only)."""
-    return bool((os.getenv("GOOGLE_API_KEY") or "").strip())
+    """True if API key is available via env or OS keychain."""
+    return bool(get_google_api_key())
 
 
 def _ensure_genai_configured():
-    api_key = (os.getenv("GOOGLE_API_KEY") or "").strip()
+    api_key = get_google_api_key()
     if not api_key:
         return False
     genai.configure(api_key=api_key)
@@ -28,13 +28,12 @@ def _ensure_genai_configured():
 
 
 def _format_ai_error(exc: Exception) -> str:
-    """Return a user-facing message. Never expose raw 403/leaked or API key details."""
     text = str(exc)
     lower = text.lower()
     if "403" in lower or "leak" in lower or "revoked" in lower:
-        return "AI Error: Unable to generate SQL. Please try again later."
+        return "AI Error: API key is invalid or revoked. Update your key in login."
     if "api key" in lower and ("invalid" in lower or "not valid" in lower):
-        return "AI Error: Unable to generate SQL. Please try again later."
+        return "AI Error: Invalid API key. Update your key in login."
     return f"AI Error: {text}"
 
 
@@ -84,7 +83,7 @@ def _build_referenced_by(schema):
 
 def get_gemini_response(prompt, default_table=None):
     if not _ensure_genai_configured():
-        return "AI Error: Unable to generate SQL. Please try again later."
+        return "AI Error: Missing API key. Add it in login."
     store_all_table_structures(force_update=True)
     schema = load_schema()
     translated_prompt = translate_to_english(prompt)
@@ -133,7 +132,7 @@ Rules:
 def fix_sql_query(failed_sql, error_message, original_prompt=None, default_table=None):
     """Given a failed SQL and error message, returns a corrected SQL query."""
     if not _ensure_genai_configured():
-        return "AI Error: Unable to generate SQL. Please try again later."
+        return "AI Error: Missing API key. Add it in login."
     store_all_table_structures(force_update=True)
     schema = load_schema()
     prompt = f"""Error from database: {error_message}
@@ -170,7 +169,7 @@ Failed query:
 def get_sql_explanation(sql_query, target_language="en"):
     """Generate a brief explanation of the SQL query in the given language."""
     if not _ensure_genai_configured():
-        return "Error generating explanation. Please try again later."
+        return "Error generating explanation: Missing API key. Add it in login."
     try:
         model = genai.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content(

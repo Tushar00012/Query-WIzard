@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { logout } from '@/api'
 import type { SidebarProps } from '@/types/components'
 import type { ColumnMeta } from '@/types'
 import { styles } from './Sidebar.styles'
@@ -104,10 +105,24 @@ export default function Sidebar({
   languages,
   promptHistory,
   schemaLoading,
+  onLogout,
 }: SidebarProps) {
   const [schemaExpanded, setSchemaExpanded] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
   const tableColumns: Record<string, ColumnMeta> =
     selectedTable && selectedTable !== 'None' ? schema[selectedTable] || {} : {}
+
+  const handleLogout = async () => {
+    if (!onLogout || loggingOut) return
+    setLoggingOut(true)
+    try {
+      await logout()
+      onLogout()
+      window.location.reload()
+    } catch {
+      setLoggingOut(false)
+    }
+  }
 
   return (
     <styles.SidebarAside>
@@ -119,6 +134,21 @@ export default function Sidebar({
             ;(e.target as HTMLImageElement).style.display = 'none'
           }}
         />
+        {onLogout && (
+          <styles.LogoutBtn
+            type="button"
+            onClick={handleLogout}
+            disabled={loggingOut}
+            title="Log out and clear cached schema"
+            aria-label={loggingOut ? 'Logging out...' : 'Log out'}
+          >
+            <styles.LogoutIcon
+              src="/assets/logout.png"
+              alt=""
+              aria-hidden
+            />
+          </styles.LogoutBtn>
+        )}
       </styles.Header>
 
       <styles.Section>

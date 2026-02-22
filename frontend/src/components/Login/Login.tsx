@@ -6,6 +6,7 @@ import { styles } from './Login.styles'
 export default function Login({ onSuccess }: LoginProps) {
   const [dbName, setDbName] = useState('')
   const [dbPassword, setDbPassword] = useState('')
+  const [googleApiKey, setGoogleApiKey] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -29,10 +30,14 @@ export default function Login({ onSuccess }: LoginProps) {
 
   return (
     <styles.Page>
+      <styles.LogoWrap>
+          <styles.Logo src="/assets/logo.png" alt="Query Wizard" />
+        </styles.LogoWrap>
       <styles.Box>
+
         <styles.Title>🔐 Login Credentials</styles.Title>
         <styles.Sub>
-          Enter your database credentials. AI features use the server’s API key.
+          Enter your DB credentials and API key.
         </styles.Sub>
         <styles.Form onSubmit={handleSubmit}>
           <label>
@@ -54,6 +59,16 @@ export default function Login({ onSuccess }: LoginProps) {
               placeholder="Your Database Password"
             />
           </label>
+          {/* <label>
+            Google API key
+            <input
+              type="password"
+              value={googleApiKey}
+              onChange={(e) => setGoogleApiKey(e.target.value)}
+              placeholder="AIza..."
+              autoComplete="off"
+            />
+          </label> */}
           {error && <styles.Error>{error}</styles.Error>}
           <styles.Submit type="submit" disabled={loading}>
             {loading ? 'Saving...' : 'Save & continue'}
