@@ -78,10 +78,13 @@ def create_app():
         data = json_body()
         db_name = (data.get("db_name") or "").strip()
         db_password = data.get("db_password") or ""
+        google_api_key = (data.get("google_api_key") or "").strip()
         if not db_name or not db_password:
             return error("Database name and password required")
+        if not google_api_key and not (os.getenv("GOOGLE_API_KEY") or "").strip():
+            return error("Google API key required")
         try:
-            update_env_credentials(db_name, db_password)
+            update_env_credentials(db_name, db_password, google_api_key or None)
             return jsonify({"success": True})
         except Exception as e:
             return error(str(e), 500)

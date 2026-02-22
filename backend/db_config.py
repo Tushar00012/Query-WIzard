@@ -59,14 +59,14 @@ def refresh_db_config():
     DB_CONFIG["database"] = os.getenv("DB_NAME", "")
 
 
-def update_env_credentials(db_name: str, db_password: str) -> None:
-    """Write DB_NAME and DB_PASSWORD to .env and refresh DB_CONFIG."""
+def update_env_credentials(db_name: str, db_password: str, google_api_key: str | None = None) -> None:
+    """Write DB credentials (and optional GOOGLE_API_KEY) to .env and refresh DB_CONFIG."""
     path = _env_path()
     lines = []
     if os.path.isfile(path):
         with open(path, "r") as f:
             lines = f.readlines()
-    seen = {"DB_NAME": False, "DB_PASSWORD": False}
+    seen = {"DB_NAME": False, "DB_PASSWORD": False, "GOOGLE_API_KEY": False}
     new_lines = []
     for line in lines:
         if re.match(r"^\s*DB_NAME\s*=", line):
@@ -75,14 +75,24 @@ def update_env_credentials(db_name: str, db_password: str) -> None:
         elif re.match(r"^\s*DB_PASSWORD\s*=", line):
             new_lines.append(f'DB_PASSWORD="{db_password}"\n')
             seen["DB_PASSWORD"] = True
+        elif re.match(r"^\s*GOOGLE_API_KEY\s*=", line):
+            if google_api_key:
+                new_lines.append(f'GOOGLE_API_KEY="{google_api_key}"\n')
+            else:
+                new_lines.append(line)
+            seen["GOOGLE_API_KEY"] = True
         else:
             new_lines.append(line)
     if not seen["DB_NAME"]:
         new_lines.append(f'DB_NAME="{db_name}"\n')
     if not seen["DB_PASSWORD"]:
         new_lines.append(f'DB_PASSWORD="{db_password}"\n')
+    if google_api_key and not seen["GOOGLE_API_KEY"]:
+        new_lines.append(f'GOOGLE_API_KEY="{google_api_key}"\n')
     with open(path, "w") as f:
         f.writelines(new_lines)
     os.environ["DB_NAME"] = db_name
     os.environ["DB_PASSWORD"] = db_password
+    if google_api_key:
+        os.environ["GOOGLE_API_KEY"] = google_api_key
     refresh_db_config()
