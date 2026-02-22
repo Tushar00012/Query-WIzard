@@ -37,6 +37,7 @@ export default function MainContent({
   const [explanation, setExplanation] = useState('')
   const [explanationOpen, setExplanationOpen] = useState(false)
   const [message, setMessage] = useState<MessageState | null>(null)
+  const [hasFixedSinceLastExecute, setHasFixedSinceLastExecute] = useState(false)
 
   const hasError = !!lastError || !!apiError
 
@@ -47,6 +48,7 @@ export default function MainContent({
       setApiError(null)
       try {
         const data = await executeSql(sql)
+        console.log('[Query Wizard] Execute response:', data)
         if (data.success) {
           setQueryResults(data.results ?? null)
           setLastError(null)
@@ -67,6 +69,12 @@ export default function MainContent({
     },
     [executeSql, setLoading]
   )
+
+  // Clear displayed table when user changes the selected table
+  useEffect(() => {
+    setQueryResults(null)
+    setLastError(null)
+  }, [selectedTable])
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -125,7 +133,14 @@ export default function MainContent({
 
   const handleExecute = () => {
     if (!generatedSql?.trim()) return
+    setHasFixedSinceLastExecute(false)
     runExecute(generatedSql)
+  }
+
+  const handleDisplayTable = () => {
+    if (!selectedTable || selectedTable === 'None') return
+    const sql = `SELECT * FROM ${selectedTable} LIMIT 100;`
+    runExecute(sql)
   }
 
   const handleFix = async () => {
@@ -152,6 +167,7 @@ export default function MainContent({
         setGeneratedSql(sql)
         setApiError(null)
         setLastError(null)
+        setHasFixedSinceLastExecute(true)
       }
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : 'Fix SQL failed'
@@ -215,6 +231,15 @@ export default function MainContent({
           >
             {loading ? 'Generating...' : 'Generate SQL'}
           </styles.BtnPrimary>
+          {selectedTable && selectedTable !== 'None' && (
+            <styles.BtnSecondary
+              type="button"
+              onClick={handleDisplayTable}
+              disabled={loading}
+            >
+              Display Table
+            </styles.BtnSecondary>
+          )}
         </styles.Buttons>
         {message && (
           <styles.Message $variant={message.type}>{message.text}</styles.Message>
@@ -261,7 +286,12 @@ export default function MainContent({
               Execute SQL
             </styles.BtnPrimary>
             {hasError && (
-              <styles.BtnSecondary type="button" onClick={handleFix} disabled={loading}>
+              <styles.BtnSecondary
+                type="button"
+                onClick={handleFix}
+                disabled={loading || hasFixedSinceLastExecute}
+                title={hasFixedSinceLastExecute ? 'Run Execute SQL first, then Fix again if it still fails' : undefined}
+              >
                 Fix Query
               </styles.BtnSecondary>
             )}

@@ -78,12 +78,13 @@ function CustomSelect({
                 type="button"
                 role="option"
                 aria-selected={opt.value === value}
+                $selected={opt.value === value}
                 onClick={() => {
                   onChange(opt.value)
                   setOpen(false)
                 }}
               >
-                {opt.value === value ? '✓ ' : ''}{opt.label}
+                {opt.label}
               </styles.SelectOption>
             ))}
           </styles.SelectDropdown>,
@@ -149,7 +150,7 @@ export default function Sidebar({
                     <styles.SchemaType>: {details.type}</styles.SchemaType>
                   </styles.SchemaRow>
                 ))}
-                <styles.DisplayAllBtn
+                {/* <styles.DisplayAllBtn
                   type="button"
                   onClick={() => {
                     const event = new CustomEvent('display-all-records', {
@@ -159,7 +160,7 @@ export default function Sidebar({
                   }}
                 >
                   📋 Display All Records
-                </styles.DisplayAllBtn>
+                </styles.DisplayAllBtn> */}
               </styles.SchemaDetail>
             )}
           </>

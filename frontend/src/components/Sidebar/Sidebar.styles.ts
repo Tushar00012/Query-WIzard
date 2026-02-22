@@ -30,6 +30,7 @@ const Header = styled.div`
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
+  background: transparent;
 `
 
 const Logo = styled.img`
@@ -37,6 +38,8 @@ const Logo = styled.img`
   height: auto;
   object-fit: contain;
   flex-shrink: 0;
+  background: transparent;
+  display: block;
 `
 
 const Title = styled.span`
@@ -120,20 +123,20 @@ const SelectDropdown = styled.div<{ $width: number; $top: number; $left: number 
   z-index: 10000;
 `
 
-const SelectOption = styled.button`
+const SelectOption = styled.button<{ $selected?: boolean }>`
   display: block;
   width: 100%;
   padding: 0.55rem 0.85rem;
   border: none;
-  background: transparent;
   font-size: 0.95rem;
-  color: #31333f;
   text-align: left;
   cursor: pointer;
   transition: background 0.15s;
+  background: ${(p) => (p.$selected ? '#2563eb' : 'transparent')};
+  color: ${(p) => (p.$selected ? '#fff' : '#31333f')};
 
   &:hover {
-    background: rgba(99, 102, 241, 0.08);
+    background: ${(p) => (p.$selected ? '#1d4ed8' : 'rgba(37, 99, 235, 0.12)')};
   }
   &:not(:last-child) {
     border-bottom: 1px solid #f3f4f6;

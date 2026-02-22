@@ -37,16 +37,13 @@ export default function QueryWizard() {
       const data = await getSchema()
       setSchema(data.schema || {})
       setTables(data.tables || [])
-      if (data.tables?.length && selectedTable === 'None') {
-        setSelectedTable(data.tables[0])
-      }
     } catch {
       setSchema({})
       setTables([])
     } finally {
       setSchemaLoading(false)
     }
-  }, [selectedTable])
+  }, [])
 
   useEffect(() => {
     loadSchema()

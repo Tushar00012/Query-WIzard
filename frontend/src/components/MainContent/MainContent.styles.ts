@@ -21,6 +21,7 @@ const TitleLogo = styled.img`
   height: 5rem;
   width: auto;
   display: block;
+  background: transparent;
 `
 
 const Section = styled.section`

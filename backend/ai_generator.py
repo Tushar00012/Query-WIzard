@@ -36,7 +36,24 @@ Rules:
 9.table ka schema dikhao means describe the table.
 10.for any query of create use create if not exist with the given fields.
 11. always take each input as lowercase strictly.
+IMPORTANT RULE: if a record is used as a foreign key in other table then delete it from other tables as well
+
 """
+
+
+def _build_referenced_by(schema):
+    """Build map: table_name -> list of 'other_table.column' that reference it."""
+    refs = {}
+    for table, cols in schema.items():
+        for col, data in cols.items():
+            fk = data.get("foreign_key")
+            if fk:
+                ref_table = fk.split("(")[0].strip() if "(" in fk else fk
+                ref_table = ref_table.strip("`")
+                if ref_table not in refs:
+                    refs[ref_table] = []
+                refs[ref_table].append(f"`{table}`.`{col}`")
+    return refs
 
 
 def get_gemini_response(prompt, default_table=None):
@@ -56,9 +73,17 @@ def get_gemini_response(prompt, default_table=None):
             for col, data in schema[table].items():
                 if data.get("foreign_key"):
                     relationship_details.append(f"Column `{col}` in `{table}` links to {data['foreign_key']}")
+        referenced_by = _build_referenced_by(schema)
+        ref_by_lines = []
+        for table in mentioned_tables:
+            refs = referenced_by.get(table, [])
+            if refs:
+                ref_by_lines.append(f"Table `{table}` is referenced by: {', '.join(refs)}")
         translated_prompt += f"\n\nSchema Details:\n{table_details}"
         if relationship_details:
             translated_prompt += "\n\nTable Relationships:\n" + "\n".join(relationship_details)
+        if ref_by_lines:
+            translated_prompt += "\n\nReferenced by (child tables that must be considered for DELETE/UPDATE on the above):\n" + "\n".join(ref_by_lines)
     try:
         model = genai.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content([SQL_PROMPT, translated_prompt])
