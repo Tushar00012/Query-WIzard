@@ -35,9 +35,9 @@ export default function Login({ onSuccess }: LoginProps) {
         </styles.LogoWrap>
       <styles.Box>
 
-        <styles.Title>🔐 Login Credentials</styles.Title>
+        <styles.Title>Login</styles.Title>
         <styles.Sub>
-          Enter your DB credentials and API key.
+          Enter your credentials.
         </styles.Sub>
         <styles.Form onSubmit={handleSubmit}>
           <label>
