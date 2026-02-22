@@ -28,6 +28,14 @@ def has_db_credentials():
     return bool(p and n)
 
 
+def has_google_api_key():
+    return bool((os.getenv("GOOGLE_API_KEY") or "").strip())
+
+
+def has_app_credentials():
+    return has_db_credentials() and has_google_api_key()
+
+
 def json_body():
     return request.get_json(silent=True) or {}
 
@@ -91,7 +99,13 @@ def create_app():
 
     @app.route("/api/check-auth", methods=["GET"])
     def check_auth():
-        return jsonify({"authenticated": has_db_credentials()})
+        return jsonify(
+            {
+                "authenticated": has_app_credentials(),
+                "has_db_credentials": has_db_credentials(),
+                "has_google_api_key": has_google_api_key(),
+            }
+        )
 
     @app.route("/api/schema", methods=["GET"])
     @require_auth
