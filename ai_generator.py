@@ -6,7 +6,7 @@ from schema_handler import load_schema, store_all_table_structures
 from deep_translator import GoogleTranslator
 
 
-GOOGLE_API_KEY="AIzaSyCxm_Hm2u8_76YycigJ3QphshgHpuaDjWc"
+GOOGLE_API_KEY="your api key "
 genai.configure(api_key=GOOGLE_API_KEY)
 
 logging.basicConfig(level=logging.INFO)
@@ -116,3 +116,19 @@ Failed query:
         return sql_query
     except Exception as e:
         return f"AI Error: {str(e)}"
+
+
+def get_sql_explanation(sql_query, target_language="en"):
+    """Generate a brief explanation of the SQL query in the given language."""
+    try:
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        response = model.generate_content(
+            f"Provide a brief explanation of this SQL query in 2-3 sentences:\n{sql_query}"
+        )
+        explanation = response.text.strip()
+        if target_language != "en":
+            translator = GoogleTranslator(source="auto", target=target_language)
+            explanation = translator.translate(explanation)
+        return explanation
+    except Exception as e:
+        return f"Error generating explanation: {str(e)}"
