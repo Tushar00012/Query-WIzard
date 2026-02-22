@@ -1,7 +1,7 @@
 import streamlit as st
 import speech_recognition as sr
 from db_handler import execute_query
-from ai_generator import get_gemini_response
+from ai_generator import get_gemini_response, fix_sql_query
 from schema_handler import load_schema, store_all_table_structures
 from deep_translator import GoogleTranslator
 import google.generativeai as genai
@@ -77,12 +77,14 @@ if "prompt_history" not in st.session_state:
     st.session_state["prompt_history"] = []
 if "query_history" not in st.session_state:
     st.session_state["query_history"] = []
-if "selected_languages" not in st.session_state:
-    st.session_state["selected_languages"] = ["🇺🇸 English"]
+if "selected_language" not in st.session_state:
+    st.session_state["selected_language"] = "🇺🇸 English"
 if "is_loading" not in st.session_state:
     st.session_state["is_loading"] = False
 if "query_results" not in st.session_state:
     st.session_state["query_results"] = None
+if "last_sql_error" not in st.session_state:
+    st.session_state["last_sql_error"] = None
 
 # Language configuration with flags
 languages = {
@@ -182,13 +184,13 @@ with st.sidebar:
                 st.session_state["generated_sql"] = query
                 execute_query(query)
     
-    # Language selection with flags
+    # Language selection (single select)
     st.markdown("---")
-    st.markdown("###  Explanation Languages")
-    st.session_state["selected_languages"] = st.multiselect(
-        "Select languages for explanation",
+    st.markdown("###  Explanation Language")
+    st.session_state["selected_language"] = st.selectbox(
+        "Select language for explanation",
         options=list(languages.keys()),
-        default=st.session_state["selected_languages"]
+        index=list(languages.keys()).index(st.session_state["selected_language"]) if st.session_state["selected_language"] in languages else 0
     )
     
     # History section with improved layout
@@ -231,8 +233,9 @@ with row1_col2:
         if st.session_state.get("user_input"):
             with st.spinner("Generating SQL query..."):
                 translated_input = translate_prompt(st.session_state["user_input"])
-                sql_query = get_gemini_response(translated_input)
+                sql_query = get_gemini_response(translated_input, default_table=selected_table)
                 if sql_query:
+                    st.session_state["last_sql_error"] = None
                     st.session_state["generated_sql"] = sql_query
                     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     username = get_db_username()
@@ -252,27 +255,57 @@ if st.session_state.get("generated_sql"):
 
     # Query explanation with language selection
     with st.expander("Query Explanation", expanded=False):
-        if st.session_state["selected_languages"]:
-            for lang in st.session_state["selected_languages"]:
-                st.markdown(f"**{lang}:**")
-                try:
-                    explanation = get_sql_explanation(st.session_state["generated_sql"], target_language=languages[lang])
-                    st.markdown(f'<div class="explanation-item">{explanation}</div>', unsafe_allow_html=True)
-                except Exception as e:
-                    st.error(f"Error generating {lang} explanation: {str(e)}")
-        else:
-            st.warning("Please select at least one language for explanation.")
+        lang = st.session_state["selected_language"]
+        st.markdown(f"**{lang}:**")
+        try:
+            explanation = get_sql_explanation(st.session_state["generated_sql"], target_language=languages[lang])
+            st.markdown(f'<div class="explanation-item">{explanation}</div>', unsafe_allow_html=True)
+        except Exception as e:
+            st.error(f"Error generating {lang} explanation: {str(e)}")
     
-    # Execute button below explanation
-    if st.button("Execute SQL", key="execute_sql"):
-        with st.spinner("Executing query..."):
-            execute_query(st.session_state["generated_sql"])
+    # Execute and Fix buttons
+    exec_col, fix_col = st.columns([1, 1])
+    with exec_col:
+        if st.button("Execute SQL", key="execute_sql"):
+            with st.spinner("Executing query..."):
+                success, err = execute_query(st.session_state["generated_sql"])
+                if not success and err:
+                    st.session_state["last_sql_error"] = err
+                else:
+                    st.session_state["last_sql_error"] = None
+    has_error = (
+        st.session_state.get("last_sql_error")
+        or (st.session_state.get("generated_sql") or "").startswith("AI Error:")
+    )
+    with fix_col:
+        if has_error and st.button("Fix Query", key="fix_sql"):
+            with st.spinner("Fixing query..."):
+                current_sql = st.session_state["generated_sql"]
+                if current_sql.startswith("AI Error:"):
+                    error_msg = current_sql
+                    current_sql = ""
+                else:
+                    error_msg = st.session_state.get("last_sql_error") or "Unknown error"
+                fixed = fix_sql_query(
+                    current_sql,
+                    error_msg,
+                    original_prompt=st.session_state.get("user_input"),
+                    default_table=selected_table,
+                )
+                if fixed and not fixed.startswith("AI Error:"):
+                    st.session_state["generated_sql"] = fixed
+                    st.session_state["last_sql_error"] = None
+                    st.success("Query updated. You can execute it again.")
+                elif fixed:
+                    st.session_state["generated_sql"] = fixed
+                st.rerun()
 
 # Clear button at the bottom
 if st.session_state.get("generated_sql"):
     if st.button("Clear All", key="clear"):
         st.session_state["user_input"] = ""
         st.session_state["generated_sql"] = ""
+        st.session_state["last_sql_error"] = None
         st.rerun()
 
 # Add download functionality for query results

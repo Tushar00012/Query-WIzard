@@ -18,16 +18,20 @@ def extract_table_name(query):
     return match.group(1) if match else None
 
 def execute_query(query):
-    """Executes SQL queries, tracks history for undo, and handles errors."""
-    conn = mysql.connector.connect(**DB_CONFIG)
-    cursor = conn.cursor()
+    """Executes SQL queries, tracks history for undo, and handles errors. Returns (success, error_message)."""
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor()
+    except mysql.connector.Error as err:
+        st.error(f" SQL Execution Error: {err}")
+        return (False, str(err))
 
-    queries = query.strip().split(";")  
-    queries = [q.strip() for q in queries if q.strip()]  
+    queries = query.strip().split(";")
+    queries = [q.strip() for q in queries if q.strip()]
 
     if not queries:
         st.warning("⚠️ No valid SQL query found.")
-        return
+        return (False, "No valid SQL query found.")
 
     try:
         for q in queries:
@@ -41,8 +45,8 @@ def execute_query(query):
             if q.lower().startswith("insert"):
                 corrected_query, values_list = fix_insert_query(q, table_name)
                 if not corrected_query:
-                    st.error(values_list)  
-                    return
+                    st.error(values_list)
+                    return (False, values_list)
 
                 cursor.executemany(corrected_query, values_list)
                 conn.commit()
@@ -92,16 +96,19 @@ def execute_query(query):
                 conn.commit()
                 st.success(f" Query executed successfully!")
 
+        return (True, None)
     except mysql.connector.Error as err:
         st.error(f" SQL Execution Error: {err}")
         logging.error(f"SQL Execution Error: {err}")
-
+        return (False, str(err))
     finally:
         try:
-            while cursor.nextset():  
+            while cursor.nextset():
                 pass
         except mysql.connector.InterfaceError:
-            pass  
-
-        cursor.close()
-        conn.close()
+            pass
+        try:
+            cursor.close()
+            conn.close()
+        except Exception:
+            pass
