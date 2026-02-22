@@ -6,7 +6,6 @@ import { styles } from './Login.styles'
 export default function Login({ onSuccess }: LoginProps) {
   const [dbName, setDbName] = useState('')
   const [dbPassword, setDbPassword] = useState('')
-  const [googleApiKey, setGoogleApiKey] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -59,16 +58,6 @@ export default function Login({ onSuccess }: LoginProps) {
               placeholder="Your Database Password"
             />
           </label>
-          {/* <label>
-            Google API key
-            <input
-              type="password"
-              value={googleApiKey}
-              onChange={(e) => setGoogleApiKey(e.target.value)}
-              placeholder="AIza..."
-              autoComplete="off"
-            />
-          </label> */}
           {error && <styles.Error>{error}</styles.Error>}
           <styles.Submit type="submit" disabled={loading}>
             {loading ? 'Saving...' : 'Save & continue'}

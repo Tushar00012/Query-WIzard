@@ -5,17 +5,17 @@ from deep_translator import GoogleTranslator
 try:
     from . import db_config  # load .env at import-time (server only)
     from .schema_handler import load_schema, store_all_table_structures
-    from .secret_store import get_google_api_key
+    from .firebase_key_loader import get_google_api_key
 except ImportError:
     import db_config
     from schema_handler import load_schema, store_all_table_structures
-    from secret_store import get_google_api_key
+    from firebase_key_loader import get_google_api_key
 
 logging.basicConfig(level=logging.INFO)
 translator = GoogleTranslator(source="auto", target="en")
 
 def has_api_key():
-    """True if API key is available via env or OS keychain."""
+    """True if API key is available from Firebase RTDB."""
     return bool(get_google_api_key())
 
 
@@ -31,9 +31,9 @@ def _format_ai_error(exc: Exception) -> str:
     text = str(exc)
     lower = text.lower()
     if "403" in lower or "leak" in lower or "revoked" in lower:
-        return "AI Error: API key is invalid or revoked. Update your key in login."
+        return "AI Error: API key is invalid or revoked. Update GOOGLE_API_KEY in Firebase Realtime Database."
     if "api key" in lower and ("invalid" in lower or "not valid" in lower):
-        return "AI Error: Invalid API key. Update your key in login."
+        return "AI Error: Invalid API key. Update GOOGLE_API_KEY in Firebase Realtime Database."
     return f"AI Error: {text}"
 
 
@@ -83,7 +83,7 @@ def _build_referenced_by(schema):
 
 def get_gemini_response(prompt, default_table=None):
     if not _ensure_genai_configured():
-        return "AI Error: Missing API key. Add it in login."
+        return "AI Error: Missing API key. Ensure GOOGLE_API_KEY is set in Firebase Realtime Database."
     store_all_table_structures(force_update=True)
     schema = load_schema()
     translated_prompt = translate_to_english(prompt)
@@ -132,7 +132,7 @@ Rules:
 def fix_sql_query(failed_sql, error_message, original_prompt=None, default_table=None):
     """Given a failed SQL and error message, returns a corrected SQL query."""
     if not _ensure_genai_configured():
-        return "AI Error: Missing API key. Add it in login."
+        return "AI Error: Missing API key. Ensure GOOGLE_API_KEY is set in Firebase Realtime Database."
     store_all_table_structures(force_update=True)
     schema = load_schema()
     prompt = f"""Error from database: {error_message}
@@ -169,7 +169,7 @@ Failed query:
 def get_sql_explanation(sql_query, target_language="en"):
     """Generate a brief explanation of the SQL query in the given language."""
     if not _ensure_genai_configured():
-        return "Error generating explanation: Missing API key. Add it in login."
+        return "Error generating explanation: Ensure GOOGLE_API_KEY is set in Firebase Realtime Database."
     try:
         model = genai.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content(

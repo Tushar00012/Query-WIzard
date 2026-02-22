@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Build QueryWizard desktop app for macOS. API key is loaded from Firebase at runtime; no key prompt.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"

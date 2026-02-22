@@ -44,8 +44,7 @@ begin
     (Trim(ConfigPage.Values[0]) <> '') or
     (Trim(ConfigPage.Values[1]) <> '') or
     (Trim(ConfigPage.Values[2]) <> '') or
-    (Trim(ConfigPage.Values[3]) <> '') or
-    (Trim(ConfigPage.Values[4]) <> '');
+    (Trim(ConfigPage.Values[3]) <> '');
 end;
 
 procedure EnsureRuntimeEnvFile();
@@ -63,11 +62,10 @@ begin
     exit;
 
   Content :=
-    'GOOGLE_API_KEY=' + Trim(ConfigPage.Values[0]) + #13#10 +
-    'DB_HOST=' + Trim(ConfigPage.Values[1]) + #13#10 +
-    'DB_USER=' + Trim(ConfigPage.Values[2]) + #13#10 +
-    'DB_PASSWORD=' + Trim(ConfigPage.Values[3]) + #13#10 +
-    'DB_NAME=' + Trim(ConfigPage.Values[4]) + #13#10;
+    'DB_HOST=' + Trim(ConfigPage.Values[0]) + #13#10 +
+    'DB_USER=' + Trim(ConfigPage.Values[1]) + #13#10 +
+    'DB_PASSWORD=' + Trim(ConfigPage.Values[2]) + #13#10 +
+    'DB_NAME=' + Trim(ConfigPage.Values[3]) + #13#10;
   SaveStringToFile(FilePath, Content, False);
 end;
 
@@ -76,18 +74,17 @@ begin
   ConfigPage := CreateInputQueryPage(
     wpSelectTasks,
     'Runtime Configuration',
-    'Set QueryWizard runtime values',
-    'These values will be written to %USERPROFILE%\.querywizard\.env'
+    'Set QueryWizard database connection',
+    'These values will be written to %USERPROFILE%\.querywizard\.env. API key is loaded from Firebase.'
   );
 
-  ConfigPage.Add('Google API key (required for AI features):', True);
   ConfigPage.Add('DB host:', False);
   ConfigPage.Add('DB user:', False);
   ConfigPage.Add('DB password:', True);
   ConfigPage.Add('DB name:', False);
 
-  ConfigPage.Values[1] := 'localhost';
-  ConfigPage.Values[2] := 'root';
+  ConfigPage.Values[0] := 'localhost';
+  ConfigPage.Values[1] := 'root';
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);

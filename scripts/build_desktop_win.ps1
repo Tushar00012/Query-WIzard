@@ -1,3 +1,4 @@
+# Build QueryWizard desktop app for Windows. API key is loaded from Firebase at runtime; no key prompt.
 $ErrorActionPreference = "Stop"
 
 $Root = Split-Path -Parent $PSScriptRoot

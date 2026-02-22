@@ -15,13 +15,11 @@ try:
     from .schema_handler import load_schema, store_all_table_structures, delete_schema_file
     from .db_handler import execute_query_api
     from .ai_generator import get_gemini_response, fix_sql_query, get_sql_explanation, has_api_key
-    from .secret_store import set_google_api_key
 except ImportError:
     from db_config import update_env_credentials, clear_credentials
     from schema_handler import load_schema, store_all_table_structures, delete_schema_file
     from db_handler import execute_query_api
     from ai_generator import get_gemini_response, fix_sql_query, get_sql_explanation, has_api_key
-    from secret_store import set_google_api_key
 
 
 def has_db_credentials():
@@ -88,15 +86,10 @@ def create_app():
         data = json_body()
         db_name = (data.get("db_name") or "").strip()
         db_password = data.get("db_password") or ""
-        google_api_key = (data.get("google_api_key") or "").strip()
         if not db_name or not db_password:
             return error("Database name and password required")
-        if not google_api_key and not has_google_api_key():
-            return error("Google API key required")
         try:
             update_env_credentials(db_name, db_password)
-            if google_api_key and not set_google_api_key(google_api_key):
-                return error("Could not securely store API key on this machine")
             delete_schema_file()
             return jsonify({"success": True})
         except Exception as e:
