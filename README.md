@@ -138,6 +138,7 @@ This repo now supports packaging the React + Flask app into a desktop binary.
    - `QueryWizard-Windows` (`.exe`)
    - `QueryWizard-macOS` (`.app`)
    - `QueryWizard-macOS-dmg` (`.dmg`, if generated)
+   - `QueryWizard-Setup.exe` (Windows installer, creates `%USERPROFILE%\.querywizard\.env` on install)
 
 ### Publish download links
 

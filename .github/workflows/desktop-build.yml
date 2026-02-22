@@ -48,6 +48,13 @@ jobs:
             --add-data "backend/mysql_schema.json;backend" `
             desktop_launcher.py
 
+      - name: Build installer (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          choco install innosetup --yes --no-progress
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "installer/windows/QueryWizard.iss"
+
       - name: Build binary (macOS)
         if: runner.os == 'macOS'
         run: |
@@ -62,6 +69,7 @@ jobs:
           name: QueryWizard-${{ runner.os }}
           path: |
             dist/QueryWizard*
+            dist/installer/*.exe
 
       - name: Package DMG (macOS)
         if: runner.os == 'macOS'
