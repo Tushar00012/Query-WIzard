@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import speech_recognition as sr
 from db_handler import execute_query
@@ -7,7 +8,7 @@ from deep_translator import GoogleTranslator
 import google.generativeai as genai
 from datetime import datetime
 import mysql.connector
-from db_config import DB_CONFIG
+from db_config import DB_CONFIG, update_env_credentials
 import pandas as pd
 import base64
 import time
@@ -19,6 +20,62 @@ st.set_page_config(
     page_icon="logo.png",
     initial_sidebar_state="expanded"
 )
+
+# ----- Login: if not logged in, show only login page (no sidebar) -----
+def _has_db_credentials():
+    return bool(os.getenv("DB_PASSWORD") and os.getenv("DB_NAME"))
+
+if _has_db_credentials():
+    st.session_state["db_logged_in"] = True
+
+if not st.session_state.get("db_logged_in"):
+    st.markdown(
+        """
+        <style>
+        [data-testid="stSidebar"] { display: none; }
+        [data-testid="stAppViewContainer"] .main .block-container {
+            max-width: 420px;
+            margin: 0 auto;
+            padding: 2.5rem 2rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            background: #ffffff;
+        }
+        [data-testid="stAppViewContainer"] .main {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .login-title { font-size: 1.75rem; margin-bottom: 0.25rem; font-weight: 600; }
+        .login-sub { color: #6c757d; margin-bottom: 1.5rem; font-size: 0.95rem; line-height: 1.4; }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown('<h1 class="login-title"> Login Credentials</h1>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="login-sub">Enter your database credentials.</p>',
+        unsafe_allow_html=True,
+    )
+    with st.form("login_form"):
+        db_name = st.text_input("Database name", placeholder="e.g. querywizard_db")
+        db_password = st.text_input("Database password", type="password", placeholder="Your DB password")
+        submitted = st.form_submit_button("Save & continue")
+    if submitted:
+        if not (db_name and db_password):
+            st.warning("Please enter both database name and password.")
+        else:
+            try:
+                update_env_credentials(db_name.strip(), db_password)
+                st.session_state["db_logged_in"] = True
+                st.success("Credentials saved. Loading app...")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Could not save credentials: {e}")
+    st.stop()
 
 schema = load_schema()
 if not schema:
@@ -121,10 +178,9 @@ def translate_prompt(text):
         st.error(f"Translation Error: {e}")
         return text
 
-def update_user_input():
-    """Update the user input in session state"""
-    if "input_text" in st.session_state:
-        st.session_state["user_input"] = st.session_state["input_text"]
+def _current_prompt():
+    """Current query text (from text area or voice-synced user_input)."""
+    return st.session_state.get("user_input", "")
 
 def speech_to_text():
     recognizer = sr.Recognizer()
@@ -137,6 +193,7 @@ def speech_to_text():
         text = recognizer.recognize_google(audio)
         st.session_state["user_input"] = text
         st.success(f" You said: {text}")
+        st.rerun()
     except sr.UnknownValueError:
         st.error(" Could not understand the speech.")
     except sr.RequestError as e:
@@ -214,14 +271,14 @@ with st.sidebar:
 st.markdown("### Enter Your Query")
 input_container = st.container()
 with input_container:
+    # No key= so we can set user_input from voice without Streamlit API error
     user_input = st.text_area(
         "Query Input",
-        key="input_text",
         value=st.session_state.get("user_input", ""),
-        on_change=update_user_input,
         height=150,
         label_visibility="collapsed"
     )
+    st.session_state["user_input"] = user_input
 
 # First row of buttons
 row1_col1, row1_col2 = st.columns([1, 1])
@@ -230,9 +287,10 @@ with row1_col1:
         speech_to_text()
 with row1_col2:
     if st.button("Generate SQL", key="generate_sql"):
-        if st.session_state.get("user_input"):
+        prompt_text = _current_prompt()
+        if prompt_text:
             with st.spinner("Generating SQL query..."):
-                translated_input = translate_prompt(st.session_state["user_input"])
+                translated_input = translate_prompt(prompt_text)
                 sql_query = get_gemini_response(translated_input, default_table=selected_table)
                 if sql_query:
                     st.session_state["last_sql_error"] = None
@@ -240,7 +298,7 @@ with row1_col2:
                     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     username = get_db_username()
                     st.session_state["prompt_history"].append({
-                        "prompt": st.session_state["user_input"],
+                        "prompt": prompt_text,
                         "sql": sql_query,
                         "timestamp": current_time,
                         "username": username
@@ -289,7 +347,7 @@ if st.session_state.get("generated_sql"):
                 fixed = fix_sql_query(
                     current_sql,
                     error_msg,
-                    original_prompt=st.session_state.get("user_input"),
+                    original_prompt=_current_prompt(),
                     default_table=selected_table,
                 )
                 if fixed and not fixed.startswith("AI Error:"):
@@ -299,14 +357,6 @@ if st.session_state.get("generated_sql"):
                 elif fixed:
                     st.session_state["generated_sql"] = fixed
                 st.rerun()
-
-# Clear button at the bottom
-if st.session_state.get("generated_sql"):
-    if st.button("Clear All", key="clear"):
-        st.session_state["user_input"] = ""
-        st.session_state["generated_sql"] = ""
-        st.session_state["last_sql_error"] = None
-        st.rerun()
 
 # Add download functionality for query results
 if st.session_state.get("query_results") is not None and isinstance(st.session_state["query_results"], pd.DataFrame) and not st.session_state["query_results"].empty:

@@ -5,7 +5,9 @@ import google.generativeai as genai
 from schema_handler import load_schema, store_all_table_structures
 from deep_translator import GoogleTranslator
 
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+
+GOOGLE_API_KEY="AIzaSyCxm_Hm2u8_76YycigJ3QphshgHpuaDjWc"
+genai.configure(api_key=GOOGLE_API_KEY)
 
 logging.basicConfig(level=logging.INFO)
 translator = GoogleTranslator(source='auto', target='en')
